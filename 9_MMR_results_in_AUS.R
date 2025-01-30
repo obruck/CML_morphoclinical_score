@@ -2,12 +2,12 @@
 
 
 # Library
-source("~/mounts/research/src/Rfunctions/library.R")
+source("~/library.R")
 library(ggpubr)
 
 # Read data
-df = read_xlsx(paste0(export, "_response/Helsinki Full TFR cohort data _de-identified.xlsx"), sheet = "CML Full TFR cohort data")
-df1 = read_xlsx(paste0(export, "_response/Helsinki Full TFR cohort data _de-identified.xlsx"), sheet = "TFR cohort BM data")
+df = read_xlsx("./Helsinki Full TFR cohort data _de-identified.xlsx", sheet = "CML Full TFR cohort data")
+df1 = read_xlsx("./Helsinki Full TFR cohort data _de-identified.xlsx", sheet = "TFR cohort BM data")
 df = df %>%
   dplyr::left_join(df1) %>%
   janitor::clean_names() %>%
@@ -31,20 +31,17 @@ g <- ggplot(data = df %>%
   geom_jitter(size=5, width = 0.2, aes(fill=wbc), shape = 21, color = "black") +
   geom_boxplot(outlier.shape = NA, alpha = 0.5) +
   labs(x="PB WBC (E9/L)", y="Time to MMR (years)") +
-  # ylim(0, 105) +
   theme_bw() +
   theme(axis.text.x = element_text(size=12, colour = "black", face="bold"),
         axis.text.y = element_text(size=12, colour = "black", face="bold"),
         axis.title=element_text(size=14, face="bold", colour = "black"),
         legend.position = "none") +
   scale_fill_brewer(palette = c("Set1"), direction = -1) +
-  # scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
   stat_compare_means(method = "wilcox.test",
-                     # label = "p.signif",
                      label.y = 7.5,
                      label.x = 1.25,
                      size = 6); g
-ggsave(plot = g, filename = paste0(results, "_response/MMR_time_WBC.png"), width = 6, height = 6, units = "in", dpi = 300)
+ggsave(plot = g, filename = "/MMR_time_WBC.png", width = 6, height = 6, units = "in", dpi = 300)
 
 
 # Erytroid and MMR
@@ -53,20 +50,17 @@ g <- ggplot(data = df %>%
   geom_jitter(size=5, width = 0.2, aes(fill=erytroid1), shape = 21, color = "black") +
   geom_boxplot(outlier.shape = NA, alpha = 0.5) +
   labs(x="BM Erythroid precursors (%)", y="Time to MMR (years)") +
-  # ylim(0, 105) +
   theme_bw() +
   theme(axis.text.x = element_text(size=12, colour = "black", face="bold"),
         axis.text.y = element_text(size=12, colour = "black", face="bold"),
         axis.title=element_text(size=14, face="bold", colour = "black"),
         legend.position = "none") +
   scale_fill_brewer(palette = c("Set1"), direction = -1) +
-  # scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
   stat_compare_means(method = "wilcox.test",
-                     # label = "p.signif",
                      label.y = 5.5,
                      label.x = 1.25,
                      size = 6); g
-ggsave(plot = g, filename = paste0(results, "_response/MMR_time_erytroid.png"), width = 6, height = 6, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./MMR_time_erytroid.png", width = 6, height = 6, units = "in", dpi = 300)
 
 
 
@@ -76,20 +70,17 @@ g <- ggplot(data = df %>%
   geom_jitter(size=5, width = 0.2, aes(fill=wbc), shape = 21, color = "black") +
   geom_boxplot(outlier.shape = NA, alpha = 0.5) +
   labs(x="PB WBC (E9/L)", y="Time to MR4.0 (years)") +
-  # ylim(0, 105) +
   theme_bw() +
   theme(axis.text.x = element_text(size=12, colour = "black", face="bold"),
         axis.text.y = element_text(size=12, colour = "black", face="bold"),
         axis.title=element_text(size=14, face="bold", colour = "black"),
         legend.position = "none") +
   scale_fill_brewer(palette = c("Set1"), direction = -1) +
-  # scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
   stat_compare_means(method = "wilcox.test",
-                     # label = "p.signif",
                      label.y = 7.5,
                      label.x = 1.25,
                      size = 6); g
-ggsave(plot = g, filename = paste0(results, "_response/MR4_time_WBC.png"), width = 6, height = 6, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./MR4_time_WBC.png", width = 6, height = 6, units = "in", dpi = 300)
 
 
 # Erytroid and MR4.0
@@ -98,17 +89,14 @@ g <- ggplot(data = df %>%
   geom_jitter(size=5, width = 0.2, aes(fill=erytroid1), shape = 21, color = "black") +
   geom_boxplot(outlier.shape = NA, alpha = 0.5) +
   labs(x="BM Erythroid precursors (%)", y="Time to MR4.0 (years)") +
-  # ylim(0, 105) +
   theme_bw() +
   theme(axis.text.x = element_text(size=12, colour = "black", face="bold"),
         axis.text.y = element_text(size=12, colour = "black", face="bold"),
         axis.title=element_text(size=14, face="bold", colour = "black"),
         legend.position = "none") +
   scale_fill_brewer(palette = c("Set1"), direction = -1) +
-  # scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
   stat_compare_means(method = "wilcox.test",
-                     # label = "p.signif",
                      label.y = 5.5,
                      label.x = 1.25,
                      size = 6); g
-ggsave(plot = g, filename = paste0(results, "_response/MR4_time_erytroid.png"), width = 6, height = 6, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./MR4_time_erytroid.png", width = 6, height = 6, units = "in", dpi = 300)

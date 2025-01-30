@@ -2,11 +2,11 @@
 
 
 # Library
-source("~/mounts/research/src/Rfunctions/library.R")
+source("~/library.R")
 library(ggpubr)
 
 # Read data
-res = readxl::read_xlsx(paste0(results, "_response/univariate_cox_results.xlsx"))
+res = readxl::read_xlsx("./univariate_cox_results.xlsx")
 
 # Prepare data for volcanoplot
 res1 <- res %>%
@@ -14,7 +14,6 @@ res1 <- res %>%
   dplyr::arrange(p.value) %>%
   mutate(
     fold.change.log10 = log(HR, 10),
-    # adj.p.log10 = log(p.value_adj, 10),
     sig = ifelse(p.value>=0.05, "ns",
                  ifelse(HR >= 1, "HR≥1", "HR<1")),
     p.value1 = ifelse(HR > 1, p.value, -p.value),
@@ -51,7 +50,6 @@ g = ggplot(res1, aes(order1, p.value2)) +
   annotate(label="p=0.05", geom = "text", x = 550, y = -log10(0.035), color = "black", size = 4) +
   geom_hline(yintercept = log10(0.05), linetype = "dashed", color = "black", alpha = 0.6) +
   annotate(label="p=0.05", geom = "text", x = 550, y = log10(0.035), color = "black", size = 4) +
-  # geom_point(aes(fill=sig, size=-log10(p.value)), shape = 21, color="black") +
   geom_point(aes(fill=sig, size=1/p.value3), shape = 21, color="black") +
   labs(x="Rank", y="P-value") +
   guides(fill=guide_legend("P-value",
@@ -71,12 +69,10 @@ g = ggplot(res1, aes(order1, p.value2)) +
         legend.text=element_text(size=12, colour = "black"),
         legend.position = "bottom") +
   scale_fill_manual(values=c("blue", "red", "black")) +
-  scale_y_continuous(breaks = c(-2:2), labels=c(0.01,0.1,0,0.1,0.01)) + #c("-2"="0.01","-1"="0.1", "0"="0", "1"="0.1", "2" = "0.01")) +
-  # xlim(pmax(-1, min(res1$fold.change.log10)), pmin(1, max(res1$fold.change.log10))) +
-  # ylim(0, pmin(3, max(-log10(res1$p.value)))) +
-    geom_label_repel(data=res1 %>%
-                       dplyr::slice(1:10) %>%
-                       dplyr::filter(!names == "Monocytes nuclei area (median)"), size=5, aes(label=names), #nudge_x = 50, nudge_y = sample(size = 10, x = seq(-0.5, 0.5, by=0.1)),
+  scale_y_continuous(breaks = c(-2:2), labels=c(0.01,0.1,0,0.1,0.01)) +
+  geom_label_repel(data=res1 %>%
+                     dplyr::slice(1:10) %>%
+                     dplyr::filter(!names == "Monocytes nuclei area (median)"), size=5, aes(label=names),
                    box.padding = 0.7, max.overlaps=Inf, force=20, force_pull=20);g
-  # Remove manually collinear variables (Monocytes nuclei area (median))
-ggsave(plot = g, filename = paste0(results, "_response/volcanoplot.png"), width = 8, height = 5.5, units = "in", dpi = 300)
+# Remove manually collinear variables (Monocytes nuclei area (median))
+ggsave(plot = g, filename = "./volcanoplot.png", width = 8, height = 5.5, units = "in", dpi = 300)

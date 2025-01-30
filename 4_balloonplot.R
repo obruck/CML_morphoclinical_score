@@ -1,18 +1,13 @@
 # Balloonplot
 
 # Library
-source("~/mounts/research/src/Rfunctions/library.R")
+source("~/library.R")
 library(ggpubr)
-
-# General parameters
-source("~/mounts/research/husdatalake/disease/scripts/CML/R/parameters")
-
-dir.create(paste0(results, "_response/Scatterplots"))
 
 
 # Read data
-df = read_xlsx(paste0(results, "_response/univariate_cox_results_top_features_clinical_balloonplot.xlsx"))
-top_features = read_xlsx(paste0(results, "_response/univariate_cox_results_top_features.xlsx"))
+df = read_xlsx("./univariate_cox_results_top_features_clinical_balloonplot.xlsx")
+top_features = read_xlsx("./univariate_cox_results_top_features.xlsx")
 
 
 # Categorize these
@@ -88,56 +83,17 @@ for (variable1 in unique(clin)) {
     rownames_to_column() %>%
     mutate(clin_var = variable1) %>%
     rename(pvalue = p.value)
-  # arrange(pvalue)
   rownames(pvalue_df1) = NULL
   
   pvalue_df <- rbind(pvalue_df, pvalue_df1)
 }
 
 
-# Rename features
-# pvalue_df1 = pvalue_df %>%
-#   dplyr::filter(!str_detect(rowname, "percentile|perimeter")) %>%
-#   dplyr::mutate(clin_var = ifelse(clin_var == "gender", "Gender, female (yes/no)", clin_var),
-#                 clin_var = ifelse(clin_var == "age_at_dg", "Age", clin_var),
-#                 clin_var = ifelse(clin_var == "sokal_class", "Sokal, high (yes/no)", clin_var),
-#                 clin_var = ifelse(clin_var == "hasford_class", "Hasford, high (yes/no)", clin_var),
-#                 clin_var = ifelse(clin_var == "eutos_class", "EUTOS, high (yes/no)", clin_var),
-#                 clin_var = ifelse(clin_var == "elts_class", "ELTS, high (yes/no)", clin_var),
-#                 clin_var = ifelse(clin_var == "spleen_size", "Spleen size (cm)", clin_var),
-#                 clin_var = ifelse(clin_var == "b_trom", "PB PLT (E9/L)", clin_var),
-#                 clin_var = ifelse(clin_var == "l_baso", "PB Baso (%)", clin_var),
-#                 clin_var = ifelse(clin_var == "l_blast", "PB Blast (%)", clin_var),
-#                 clin_var = ifelse(clin_var == "l_eos", "PB Eos (%)", clin_var),
-#                 clin_var = ifelse(clin_var == "l_lymf", "PB Lymph (%)", clin_var),
-#                 clin_var = ifelse(clin_var == "bm_blast", "BM Blast (%)", clin_var),
-#                 rowname = gsub("_", " ",
-#                                gsub("_percentage", " (%)",
-#                                     gsub("b_leuk", "PB WBC (E9/L)",
-#                                          gsub("_mean", " (mean)",
-#                                               gsub("_percentile_25", " (25%)",
-#                                                    gsub("_percentile_75", " (75%)",
-#                                                         gsub("_median", " (median)",
-#                                                              gsub("_total", "",
-#                                                                   gsub("_proportion", " (%/Area)",
-#                                                                        gsub("sec_gen_tki", "2nd gen TKI (yes/no)",
-#                                                                             gsub("imatinib", "Imatinib (yes/no)",
-#                                                                                  gsub("dasatinib", "Dasatinib (yes/no)", rowname
-#                                                                                  )))))))))))),
-#                 rowname = str_to_sentence(rowname),
-#                 rowname = gsub("Pb wbc \\(e9\\/l\\)", "PB WBC (E9/L)", 
-#                                gsub("2nd gen tki \\(yes\\/no\\)", "2nd gen TKI (yes/no)",
-#                                     gsub("cell ", "cell\n", 
-#                                          gsub("nuclei ", "nuclei\n", rowname))))
-#   )
-
 pvalue_df1 = pvalue_df %>%
   dplyr::filter(!str_detect(rowname, "5%")) %>%
   dplyr::mutate(rowname = gsub("cell ", "cell\n",
                                gsub("nuclei ", "nuclei\n", rowname))
   )
-unique(pvalue_df1$rowname)
-unique(pvalue_df1$clin_var)
 
 ## Calculate FC and -log10 P value
 pvalue_df1 <- pvalue_df1 %>%
@@ -165,13 +121,8 @@ pvalue_df1 <- pvalue_df1 %>%
 p <- ggballoonplot(pvalue_df1, x = "rowname", y = "clin_var",
                    fill = "FC_log",
                    size = "neg_log10_p",
-                   # size.range = c(1, 10),
                    ggtheme = theme_bw()) +
   scale_size(breaks = c(0, 1, 2, 3), range = c(1, 10), limits = c(1, max(pvalue_df1$neg_log10_p))) +
-  # scale_fill_viridis_c(option = "C") +
-  # gradient_fill(c("blue", "white", "red")) +
-  # ylab("Clinical variables") +
-  # xlab("MMR biomarkers") +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red",
                        midpoint = 0,
                        limits = c(min(pvalue_df1$FC_log), max(pvalue_df1$FC_log)), na.value = "gray") +
@@ -179,26 +130,21 @@ p <- ggballoonplot(pvalue_df1, x = "rowname", y = "clin_var",
          fill = guide_colorbar(title="LOG10 FC", title.vjust = 0.75)) +
   font("xy.text", size = 10, color = "black", face="plain") +
   theme_bw() +
-  theme(#axis.title.y = element_text(size=12, colour="black", face="bold", angle = 90),
+  theme(
     axis.text.x = element_text(colour="black", angle = 45, hjust = 1, vjust = 1),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
     axis.text.y = element_text(colour="black"),
     legend.position = "bottom", legend.margin=margin()); p
-ggsave(plot = p, filename = paste0(results, "_response/Balloonplot_top_features.png"),
+ggsave(plot = p, filename = "./Balloonplot_top_features.png",
        width = 6, height = 5, dpi = 300, units = "in", bg = "white")
 
 # Balloonplot adjusted p
 p <- ggballoonplot(pvalue_df1, x = "rowname", y = "clin_var",
                    fill = "FC_log",
                    size = "neg_log10_p_adj",
-                   # size.range = c(1, 10),
                    ggtheme = theme_bw()) +
   scale_size(breaks = c(0, 1, 2, 3), range = c(1, 10), limits = c(1, max(pvalue_df1$neg_log10_p_adj))) +
-  # scale_fill_viridis_c(option = "C") +
-  # gradient_fill(c("blue", "white", "red")) +
-  # ylab("Clinical variables") +
-  # xlab("MMR biomarkers") +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red",
                        midpoint = 0,
                        limits = c(min(pvalue_df1$FC_log), max(pvalue_df1$FC_log)), na.value = "gray") +
@@ -206,13 +152,13 @@ p <- ggballoonplot(pvalue_df1, x = "rowname", y = "clin_var",
          fill = guide_colorbar(title="LOG10 FC", title.vjust = 0.75)) +
   font("xy.text", size = 10, color = "black", face="plain") +
   theme_bw() +
-  theme(#axis.title.y = element_text(size=12, colour="black", face="bold", angle = 90),
+  theme(
     axis.text.x = element_text(colour="black", angle = 45, hjust = 1, vjust = 1),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
     axis.text.y = element_text(colour="black"),
     legend.position = "bottom", legend.margin=margin()); p
-ggsave(plot = p, filename = paste0(results, "_response/Balloonplot_top_features_adjp.png"),
+ggsave(plot = p, filename = "./Balloonplot_top_features_adjp.png",
        width = 6, height = 5, dpi = 300, units = "in", bg = "white")
 
 
@@ -250,20 +196,18 @@ for (i in top_features1) {
       geom_jitter(size=5, width = 0.2, aes(fill=x1), shape = 21, color = "black") +
       geom_boxplot(outlier.shape = NA, alpha = 0.5) +
       labs(x=j, y=i) +
-      # ylim(0, 105) +
       theme_bw() +
       theme(axis.text.x = element_text(size=13, colour = "black", face="bold"),
             axis.text.y = element_text(size=13, colour = "black", face="bold"),
             axis.title=element_text(size=14, face="bold", colour = "black"),
             legend.position = "none") +
       scale_fill_brewer(palette = c("Set1"), direction = -1) +
-      # scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
       stat_compare_means(method = "wilcox.test",
                          # label = "p.signif",
                          # label.y = 12,
                          label.x = 1.2,
                          size = 6); g
-    ggsave(plot = g, filename = paste0(results, "_response/Scatterplots/", janitor::make_clean_names(j), "_", janitor::make_clean_names(i), ".png"),
+    ggsave(plot = g, filename = paste0("./Scatterplots/", janitor::make_clean_names(j), "_", janitor::make_clean_names(i), ".png"),
            width = 5, height = 5, units = "in", dpi = 300)
     
   }

@@ -1,12 +1,12 @@
 # Barplots
 
 # Library
-source("~/mounts/research/src/Rfunctions/library.R")
+source("~/library.R")
 library(ggpubr)
 
 # Read data
-df1 = read_xlsx(paste0(results, "_response/coefficients_confint.xlsx"))
-df = read_xlsx(paste0(results, "_response/coefficients.xlsx")) %>%
+df1 = read_xlsx("./coefficients_confint.xlsx")
+df = read_xlsx("./coefficients.xlsx") %>%
   bind_cols(df1) %>%
   janitor::clean_names() %>%
   dplyr::mutate(covariates = ifelse(covariates == "elts_class", "ELTS",
@@ -35,6 +35,6 @@ g = ggplot(data = df, aes(x = covariates, y = HR, fill = HRqual)) +
         axis.title=element_text(size=12, colour = "black"),
         legend.position = "None") +
   coord_flip(); g
-ggsave(plot = g, filename = paste0(results, "_response/Barplot_coefficients.png"),
+ggsave(plot = g, filename = "./Barplot_coefficients.png",
        width = 6, height = 3, units = "in", dpi = 300)
 

@@ -1,7 +1,8 @@
 rm(list = ls())
 
+
 # Load necessary libraries
-source("~/mounts/research/src/Rfunctions/library.R")
+source("~/library.R")
 library(survminer)
 library(caret)
 library(pROC)
@@ -11,17 +12,12 @@ library(cutpointr)
 library(MASS)
 library(cowplot)
 
-# General parameters
-source("~/mounts/research/husdatalake/disease/scripts/CML/R/parameters")
-
-dir.create(paste0(results, "_response"))
-
 
 ###### Process data ########
 
 
 # Data
-df0 = readRDS(paste0(export, "_response/data_for_modelling.rds")) %>%
+df0 = readRDS("./data_for_modelling.rds") %>%
   dplyr::filter(!(is.na(MMR_time) | MMR_time == 0)) %>%
   mutate(
     imatinib = ifelse(first_TKI=="imatinib", 1, 0),
@@ -47,28 +43,6 @@ df0 = readRDS(paste0(export, "_response/data_for_modelling.rds")) %>%
     HUS_or_AUS_pt = ifelse(str_detect(henkilotunnus, '^(02139|AUS)'), 1, 0)) %>%
   mutate(across(c(dasatinib, imatinib, nilotinib), as.integer))
 
-# Define batches
-# HUS_or_AUS_pt = ifelse(str_detect(henkilotunnus, '^02139'), 1, 0),
-# HUS = ifelse(str_detect(henkilotunnus, '^02139'), 1, 0),
-# NOR = ifelse(str_detect(henkilotunnus, 'NOR'), 1, 0),
-# SAGA = ifelse(str_detect(henkilotunnus, '^SAGA'), 1, 0),
-# OME = ifelse(str_detect(henkilotunnus, '^OME'), 1, 0),
-# UPP = ifelse(str_detect(henkilotunnus, '^Upp'), 1, 0),
-# AUS = ifelse(str_detect(henkilotunnus, '^AUS'), 1, 0),
-# ORE = ifelse(!str_detect(henkilotunnus, '^(Upp|AUS|02139|NOR|SAGA|OME)'), 1, 0),
-#                        ifelse(str_detect(henkilotunnus, '^NOR'), "NOR", 
-#                               ifelse(str_detect(henkilotunnus, '^JPN'), "SAGA", 
-#                                      ifelse(str_detect(henkilotunnus, '^OME'), "OME", 
-#                                             ifelse(str_detect(henkilotunnus, '^Upp'), "UPP", 
-#                                                    ifelse(str_detect(henkilotunnus, '^AUS'), "AUS", "ORE"))))))
-# site = ifelse(str_detect(henkilotunnus, '^02139'), "HUS",
-#                        ifelse(str_detect(henkilotunnus, '^NOR'), "NOR",
-#                               ifelse(str_detect(henkilotunnus, '^JPN'), "SAGA",
-#                                      ifelse(str_detect(henkilotunnus, '^OME'), "OME",
-#                                             ifelse(str_detect(henkilotunnus, '^Upp'), "UPP",
-#                                                    ifelse(str_detect(henkilotunnus, '^AUS'), "AUS", "ORE"))))))
-
-table(df0$response_at_24)
 
 # Rename
 df0 = df0 %>%
@@ -80,7 +54,6 @@ df0 = df0 %>%
     mmr_time = ifelse(is.na(mmr_time), 0, mmr_time),
     mmr_time1=mmr_time,
     mmr = response_at_24
-    # mmr_time=ifelse(!is.na(response_at_24), 1/mmr_time, NA)
   ) %>%
   dplyr::filter(!is.na(response_at_24)) %>%
   dplyr::filter(!(response_at_24==FALSE & mmr_time1<24))
@@ -96,12 +69,13 @@ df0 = df0 %>%
 df0[df0 == "NaN"] <- NA
 df0[df0 == "Inf"] <- NA
 df0[df0 == "-Inf"] <- NA
-# df0$mmr_time = ifelse(is.na(df0$mmr_time), min(df0$mmr_time, na.rm = TRUE), df0$mmr_time)
 
+
+# Store
 df = df0
 
 # Export
-writexl::write_xlsx(df, paste0(export, "_response/full_data.xlsx"))
+writexl::write_xlsx(df, "./full_data.xlsx")
 
 # Remove unnecessary variables
 df = df %>%
@@ -115,20 +89,8 @@ df = df %>%
 seed1=10
 set.seed(seed1)
 
-# train_index <- createDataPartition(y = df$mmr, p = 0.6, list = FALSE) # df$hus_or_aus_pt
-# df_train <- df[train_index, ]
-# df_test <- df[-train_index, ]
-# train_index <- createDataPartition(y = df_test$mmr, p = 0.5, list = FALSE) # df$hus_or_aus_pt
-# df_val <- df_test[train_index, ]
-# df_test <- df_test[-train_index, ]
-# 
-# df_train$hus_or_aus_pt <- NULL
-# df_val$hus_or_aus_pt <- NULL
-# df_test$hus_or_aus_pt <- NULL
 
-# table(df$center, df$mmr)
-# table(df_train$mmr)
-# table(df_test$mmr)
+# Split data
 df_train1 <- df %>%
   dplyr::filter(!center %in% c("Australia"))
 train_index <- createDataPartition(y = df_train1$mmr, p = 0.8, list = FALSE) # df$hus_or_aus_pt
@@ -153,15 +115,11 @@ cox_fun <- sapply(covariates,
 model_list <- lapply(cox_fun, function(x){coxph(x, data = df_train)})
 
 # Extract data
-# tmp = summary(coxph(Surv(df_train$mmr_time, df_train$response_at_24)~df_train$b_leuk, data=df_train))
 univ_results <- lapply(model_list,
                        function(x){
                          x <- summary(x)
-                         # p.value<-signif(x$sctest["pvalue"], digits=5)
-                         # p.value<-signif(x$coefficients[9], digits=5)
                          p.value<-signif(x$coefficients[5], digits=5)
                          beta<-signif(x$coef[1], digits=5);#coeficient beta
-                         # HR <-signif(x$coef[3], digits=5);#exp(beta)
                          HR <-signif(x$coef[2], digits=5);#exp(beta)
                          HR.confint.lower <- signif(x$conf.int[1,"lower .95"], 5)
                          HR.confint.upper <- signif(x$conf.int[1,"upper .95"], 5)
@@ -177,7 +135,6 @@ res <- t(as.data.frame(univ_results)) %>%
   as.data.frame %>%
   tibble::rownames_to_column("names") %>%
   mutate(
-    # seed = seed1,
     beta = as.numeric(as.character(beta)),
     HR = as.numeric(as.character(HR)),
     p.value = as.numeric(as.character(p.value)),
@@ -189,13 +146,12 @@ if (!exists("res1")) {
 } else {
   res1 = rbind(res1, res)
 }
-writexl::write_xlsx(res1, paste0(results, "_response/univariate_cox_results.xlsx"))
+writexl::write_xlsx(res1, "./univariate_cox_results.xlsx")
 
 
 # Univariate
 selected_features <- res1 %>%
   dplyr::arrange(p.value) %>%
-  # dplyr::slice(1:10) %>%
   dplyr::filter(p.value<0.05) %>%
   distinct(names)
 ## Covariates to remove
@@ -239,7 +195,6 @@ for (j in 1:10) {
     as.data.frame %>%
     tibble::rownames_to_column("names") %>%
     mutate(
-      # seed = seed1,
       beta = as.numeric(as.character(beta)),
       HR = as.numeric(as.character(HR)),
       p.value = as.numeric(as.character(p.value)),
@@ -270,10 +225,8 @@ df %>%
 selected_features3 = selected_features2 %>%
   dplyr::group_by(names) %>%
   summarise(n = n()) %>%
-  dplyr::filter(!str_detect(names, "(?i)(plasma|lympho|promonocytes|green|red|blue|solidity|compactness|macro)")) %>%
   dplyr::arrange(desc(n)) %>%
   dplyr::filter(n>3); selected_features3
-# dplyr::slice(1:20); selected_features3
 
 
 
@@ -307,7 +260,6 @@ res <- t(as.data.frame(univ_results)) %>%
   as.data.frame %>%
   tibble::rownames_to_column("names") %>%
   mutate(
-    # seed = seed1,
     beta = as.numeric(as.character(beta)),
     HR = as.numeric(as.character(HR)),
     p.value = as.numeric(as.character(p.value)))
@@ -318,7 +270,7 @@ selected_features4 <- res %>%
   dplyr::left_join(selected_features3)
 
 # Export
-writexl::write_xlsx(selected_features4, paste0(results, "_response/univariate_cox_results_top_features.xlsx"))
+writexl::write_xlsx(selected_features4, "./univariate_cox_results_top_features.xlsx")
 
 
 
@@ -350,7 +302,6 @@ if (!"elts_class" %in% top_features) {
   top_features = c(top_features, "elts_class")
 }
 top_features = unique(top_features)
-# top_features = top_features[-1]
 formula_string <- paste("Surv(mmr_time, mmr) ~", paste(top_features, collapse = "+"))
 cox_formula <- as.formula(formula_string)
 
@@ -358,7 +309,6 @@ cox_formula <- as.formula(formula_string)
 full_model <- coxph(cox_formula, data = df_train2[,c("mmr_time", "mmr", top_features)])
 
 # Perform stepwise forward selection using AIC
-# model1 <- stepAIC(full_model, direction = "forward", trace = FALSE)
 model.null = coxph(Surv(mmr_time, mmr) ~ elts_class, data = df_train2[,c("mmr_time", "mmr", top_features)])
 cox_model = MASS::stepAIC(model.null, direction = "forward",
                           scope = list(lower = model.null,
@@ -368,14 +318,6 @@ cox_model = MASS::stepAIC(model.null, direction = "forward",
 # Summary of the Cox model
 cox_summary <- summary(cox_model)
 
-# cox_summary$call
-# summary(coxph(formula = Surv(mmr_time, mmr) ~ elts_class + 
-#                 b_leuk +
-#                 monocytes_cell_area_median +
-#                 proerythroblasts_cytoplasm_area_percentile_25 +
-#                 imatinib, 
-#               data = df_train2[, c("mmr_time", "mmr", top_features)]))
-
 
 # Extract the coefficients from the model
 coefficients <- cox_summary$coefficients[, "coef"]
@@ -384,9 +326,9 @@ coefficients <- cox_summary$coefficients[, "coef"]
 print(coefficients)
 tmp = data.frame(cox_summary$coefficients)
 tmp$covariates = rownames(cox_summary$coefficients)
-writexl::write_xlsx(tmp, paste0(results, "_response/coefficients.xlsx"))
-writexl::write_xlsx(data.frame(cox_summary$conf.int), paste0(results, "_response/coefficients_confint.xlsx"))
-writexl::write_xlsx(data.frame(cox_summary$sctest), paste0(results, "_response/coefficients_logranktest.xlsx"))
+writexl::write_xlsx(tmp, "./coefficients.xlsx")
+writexl::write_xlsx(data.frame(cox_summary$conf.int), "./coefficients_confint.xlsx")
+writexl::write_xlsx(data.frame(cox_summary$sctest), "./coefficients_logranktest.xlsx")
 
 
 # Compute the risk score for each individual
@@ -438,7 +380,6 @@ conf_matrix1 = as.data.frame(conf_matrix$table) %>%
 g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)), y = reorder(Prediction, -as.integer(Prediction)), fill = Prop)) +
   geom_tile(color="black", linewidth = 0.6) +
   geom_text(aes(label=paste0(round(Prop, 1), "%\nn=", round(Freq, 0))), size=4.5) +
-  # scale_fill_distiller(palette = "Reds", direction = 1) +
   scale_fill_gradient(low="white", high="red") +
   labs(y = "Predicted response", x = "True response", fill = "Proportion (%)") +
   theme_minimal() +
@@ -447,7 +388,7 @@ g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)
         axis.text.y = element_text(colour = "black", size = 11),
         axis.text.x = element_text(colour = "black", size = 11),
         legend.title = element_text(colour = "black", size = 12, vjust = 0.8)); g
-ggsave(plot = g, filename = paste0(results, "_response/confusion_matrix_", seed1, "_val.png"),
+ggsave(plot = g, filename = paste0("./confusion_matrix_", seed1, "_val.png"),
        bg = "white", width = 3.5, height = 3.5, units = "in", dpi = 300)
 
 
@@ -467,7 +408,6 @@ metrics_val = data.frame(
   auc = round(auc$auc, 3),
   precision = round(TP / (TP + FP), 3),
   recall = round(TP / (TP + FN), 3)
-  # seed = seed1
 ) %>%
   dplyr::mutate(f1 = round((2*precision*recall)/(precision+recall), 3))
 
@@ -516,7 +456,6 @@ conf_matrix1 = as.data.frame(conf_matrix$table) %>%
 g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)), y = reorder(Prediction, -as.integer(Prediction)), fill = Prop)) +
   geom_tile(color="black", linewidth = 0.6) +
   geom_text(aes(label=paste0(round(Prop, 1), "%\nn=", round(Freq, 0))), size=4.5) +
-  # scale_fill_distiller(palette = "Reds", direction = 1) +
   scale_fill_gradient(low="white", high="red") +
   labs(y = "Predicted response", x = "True response", fill = "Proportion (%)") +
   theme_minimal() +
@@ -525,7 +464,7 @@ g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)
         axis.text.y = element_text(colour = "black", size = 11),
         axis.text.x = element_text(colour = "black", size = 11),
         legend.title = element_text(colour = "black", size = 12, vjust = 0.8)); g
-ggsave(plot = g, filename = paste0(results, "_response/confusion_matrix_", seed1, "_test.png"),
+ggsave(plot = g, filename = paste0("./confusion_matrix_", seed1, "_test.png"),
        bg = "white", width = 3.5, height = 3.5, units = "in", dpi = 300)
 
 
@@ -545,7 +484,6 @@ metrics_test = data.frame(
   auc = round(auc$auc, 3),
   precision = round(TP / (TP + FP), 3),
   recall = round(TP / (TP + FN), 3)
-  # seed = seed1
 ) %>%
   dplyr::mutate(f1 = round((2*precision*recall)/(precision+recall), 3))
 
@@ -563,7 +501,7 @@ df_train1 = df_train1 %>%
   dplyr::mutate(mmr = ifelse(mmr == FALSE, 0, 1))
 df_train1$score <- as.matrix(df_train1[, gsub("TRUE", "", rownames(cox_summary$coefficients))]) %*% coefficients
 
-predicted_labels_train <- ifelse(df_train1$score >= cp$optimal_cutpoint, 1, 0) #cp$optimal_cutpoint
+predicted_labels_train <- ifelse(df_train1$score >= cp$optimal_cutpoint, 1, 0)
 
 
 # METRICS
@@ -595,7 +533,6 @@ conf_matrix1 = as.data.frame(conf_matrix$table) %>%
 g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)), y = reorder(Prediction, -as.integer(Prediction)), fill = Prop)) +
   geom_tile(color="black", linewidth = 0.6) +
   geom_text(aes(label=paste0(round(Prop, 1), "%\nn=", round(Freq, 0))), size=4.5) +
-  # scale_fill_distiller(palette = "Reds", direction = 1) +
   scale_fill_gradient(low="white", high="red") +
   labs(y = "Predicted response", x = "True response", fill = "Proportion (%)") +
   theme_minimal() +
@@ -604,7 +541,7 @@ g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)
         axis.text.y = element_text(colour = "black", size = 11),
         axis.text.x = element_text(colour = "black", size = 11),
         legend.title = element_text(colour = "black", size = 12, vjust = 0.8)); g
-ggsave(plot = g, filename = paste0(results, "_response/confusion_matrix_", seed1, "_train.png"),
+ggsave(plot = g, filename = paste0("./confusion_matrix_", seed1, "_train.png"),
        bg = "white", width = 3.5, height = 3.5, units = "in", dpi = 300)
 
 
@@ -670,7 +607,6 @@ for (center1 in unique(df_train1$center)) {
   g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)), y = reorder(Prediction, -as.integer(Prediction)), fill = Prop)) +
     geom_tile(color="black", linewidth = 0.6) +
     geom_text(aes(label=paste0(round(Prop, 1), "%\nn=", round(Freq, 0))), size=4.5) +
-    # scale_fill_distiller(palette = "Reds", direction = 1) +
     scale_fill_gradient(low="white", high="red") +
     labs(y = "Predicted response", x = "True response", fill = "Proportion (%)") +
     theme_minimal() +
@@ -679,7 +615,7 @@ for (center1 in unique(df_train1$center)) {
           axis.text.y = element_text(colour = "black", size = 11),
           axis.text.x = element_text(colour = "black", size = 11),
           legend.title = element_text(colour = "black", size = 12, vjust = 0.8)); print(g)
-  ggsave(plot = g, filename = paste0(results, "_response/site/confusion_matrix_", seed1, "_train_", center1, "_center.png"),
+  ggsave(plot = g, filename = paste0("./site/confusion_matrix_", seed1, "_train_", center1, "_center.png"),
          bg = "white", width = 3.5, height = 3.5, units = "in", dpi = 300)
   
 }
@@ -724,7 +660,6 @@ conf_matrix1 = as.data.frame(conf_matrix$table) %>%
 g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)), y = reorder(Prediction, -as.integer(Prediction)), fill = Prop)) +
   geom_tile(color="black", linewidth = 0.6) +
   geom_text(aes(label=paste0(round(Prop, 1), "%\nn=", round(Freq, 0))), size=4.5) +
-  # scale_fill_distiller(palette = "Reds", direction = 1) +
   scale_fill_gradient(low="white", high="red") +
   labs(y = "Predicted response", x = "True response", fill = "Proportion (%)") +
   theme_minimal() +
@@ -733,7 +668,7 @@ g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)
         axis.text.y = element_text(colour = "black", size = 11),
         axis.text.x = element_text(colour = "black", size = 11),
         legend.title = element_text(colour = "black", size = 12, vjust = 0.8)); g
-ggsave(plot = g, filename = paste0(results, "_response/confusion_matrix_", seed1, "_benchmark.png"),
+ggsave(plot = g, filename = paste0("./confusion_matrix_", seed1, "_benchmark.png"),
        bg = "white", width = 3.5, height = 3.5, units = "in", dpi = 300)
 
 # Combine metrics
@@ -752,7 +687,6 @@ metrics_benchmark = data.frame(
   auc = round(auc$auc, 3),
   precision = round(TP / (TP + FP), 3),
   recall = round(TP / (TP + FN), 3)
-  # seed = seed1
 ) %>%
   dplyr::mutate(f1 = round((2*precision*recall)/(precision+recall), 3))
 
@@ -768,13 +702,13 @@ if (!exists("metrics1")) {
 
 
 # Load data
-halving_times_hus = readRDS("mounts/research/husdatalake/disease/processed_data/CML/kml_halvingtimes.rds") %>%
+halving_times_hus = readRDS("./kml_halvingtimes.rds") %>%
   dplyr::select(henkilotunnus, ht=ht1)
-halving_times_abroad = readxl::read_xlsx("mounts/research/husdatalake/disease/processed_data/CML_response/halving_time_abroad.xlsx") %>%
+halving_times_abroad = readxl::read_xlsx("./halving_time_abroad.xlsx") %>%
   dplyr::select(album_id=`Hemavision ID`, ht=`3-month halving time`)
 
 # Process data
-ht_index = 76
+ht_index = 76 # Halving time according to 10.1182/blood-2014-03-566323
 df_hus = df %>%
   dplyr::filter(center == "HUS") %>%
   dplyr::select(henkilotunnus, album_id) %>%
@@ -826,7 +760,6 @@ conf_matrix1 = as.data.frame(conf_matrix$table) %>%
 g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)), y = reorder(Prediction, -as.integer(Prediction)), fill = Prop)) +
   geom_tile(color="black", linewidth = 0.6) +
   geom_text(aes(label=paste0(round(Prop, 1), "%\nn=", round(Freq, 0))), size=4.5) +
-  # scale_fill_distiller(palette = "Reds", direction = 1) +
   scale_fill_gradient(low="white", high="red") +
   labs(y = "Predicted response", x = "True response", fill = "Proportion (%)") +
   theme_minimal() +
@@ -835,7 +768,7 @@ g = ggplot(data = conf_matrix1, aes(x = reorder(Reference, as.integer(Reference)
         axis.text.y = element_text(colour = "black", size = 11),
         axis.text.x = element_text(colour = "black", size = 11),
         legend.title = element_text(colour = "black", size = 12, vjust = 0.8)); g
-ggsave(plot = g, filename = paste0(results, "_response/confusion_matrix_", seed1, "_halving_time.png"),
+ggsave(plot = g, filename = paste0("./confusion_matrix_", seed1, "_halving_time.png"),
        bg = "white", width = 3.5, height = 3.5, units = "in", dpi = 300)
 
 
@@ -855,7 +788,6 @@ metrics_ht = data.frame(
   auc = round(auc$auc, 3),
   precision = round(TP / (TP + FP), 3),
   recall = round(TP / (TP + FN), 3)
-  # seed = seed1
 ) %>%
   dplyr::mutate(f1 = round((2*precision*recall)/(precision+recall), 3))
 
@@ -865,7 +797,7 @@ if (!exists("metrics1")) {
 } else {
   metrics1 = rbind(metrics1, metrics_ht)
 }
-writexl::write_xlsx(metrics1, paste0(results, "_response/model_metrics.xlsx"))
+writexl::write_xlsx(metrics1, "./model_metrics.xlsx")
 
 
 # Combine score and halving time
@@ -927,7 +859,6 @@ g = ggsurvplot(fit,
                legend.labs = c("TRUE", "FALSE")); g
 
 g1 = plot_grid(g$plot +
-                 #guides(colour = guide_legend(nrow = 1)) +
                  theme_bw() +
                  theme(axis.line = element_line(colour = "black"),
                        panel.grid.major = element_blank(),
@@ -942,7 +873,7 @@ g1 = plot_grid(g$plot +
                        legend.position = "top"),
                g$table +
                  guides(colour = "none"), ncol = 1, align = "v", rel_heights = c(2, 1))
-ggsave(plot = g1, filename = paste0(results, "_response/kaplan_meier_mmr_benchmark.png"), width = 5, height = 5, bg = "white", units = 'in', dpi = 300)
+ggsave(plot = g1, filename = "./kaplan_meier_mmr_benchmark.png", width = 5, height = 5, bg = "white", units = 'in', dpi = 300)
 
 
 
@@ -993,7 +924,6 @@ g = ggsurvplot(fit,
                legend.labs = c("<76 days", "≥76 days")); g
 
 g1 = plot_grid(g$plot +
-                 #guides(colour = guide_legend(nrow = 1)) +
                  theme_bw() +
                  theme(axis.line = element_line(colour = "black"),
                        panel.grid.major = element_blank(),
@@ -1008,7 +938,7 @@ g1 = plot_grid(g$plot +
                        legend.position = "top"),
                g$table +
                  guides(colour = "none"), ncol = 1, align = "v", rel_heights = c(2, 1))
-ggsave(plot = g1, filename = paste0(results, "_response/kaplan_meier_mmr_halving_time.png"),
+ggsave(plot = g1, filename = "./kaplan_meier_mmr_halving_time.png",
        width = 5, height = 5, bg = "white", units = 'in', dpi = 300)
 
 
@@ -1077,7 +1007,7 @@ g1 = plot_grid(g$plot +
                        legend.position = "top"),
                g$table +
                  guides(colour = "none"), ncol = 1, align = "v", rel_heights = c(2, 1))
-ggsave(plot = g1, filename = paste0(results, "_response/kaplan_meier_mmr_imaging_by_tki_val_test.png"),
+ggsave(plot = g1, filename = "./kaplan_meier_mmr_imaging_by_tki_val_test.png",
        width = 5, height = 5, bg = "white", units = 'in', dpi = 300)
 
 
@@ -1122,7 +1052,6 @@ g = ggsurvplot(fit,
                legend.labs = c("Low", "High")); g
 
 g1 = plot_grid(g$plot +
-                 #guides(colour = guide_legend(nrow = 1)) +
                  theme_bw() +
                  theme(axis.line = element_line(colour = "black"),
                        panel.grid.major = element_blank(),
@@ -1137,7 +1066,7 @@ g1 = plot_grid(g$plot +
                        legend.position = "top"),
                g$table +
                  guides(colour = "none"), ncol = 1, align = "v", rel_heights = c(2, 1))
-ggsave(plot = g1, filename = paste0(results, "_response/kaplan_meier_mmr_imaging_train.png"),
+ggsave(plot = g1, filename = "./kaplan_meier_mmr_imaging_train.png",
        width = 5, height = 5, bg = "white", units = 'in', dpi = 300)
 
 
@@ -1181,7 +1110,6 @@ g = ggsurvplot(fit,
                legend.labs = c("Low", "High")); g
 
 g1 = plot_grid(g$plot +
-                 #guides(colour = guide_legend(nrow = 1)) +
                  theme_bw() +
                  theme(axis.line = element_line(colour = "black"),
                        panel.grid.major = element_blank(),
@@ -1196,7 +1124,7 @@ g1 = plot_grid(g$plot +
                        legend.position = "top"),
                g$table +
                  guides(colour = "none"), ncol = 1, align = "v", rel_heights = c(2, 1))
-ggsave(plot = g1, filename = paste0(results, "_response/kaplan_meier_mmr_imaging_val.png"),
+ggsave(plot = g1, filename = "./kaplan_meier_mmr_imaging_val.png",
        width = 5, height = 5, bg = "white", units = 'in', dpi = 300)
 
 
@@ -1240,7 +1168,6 @@ g = ggsurvplot(fit,
                legend.labs = c("Low", "High")); g
 
 g1 = plot_grid(g$plot +
-                 #guides(colour = guide_legend(nrow = 1)) +
                  theme_bw() +
                  theme(axis.line = element_line(colour = "black"),
                        panel.grid.major = element_blank(),
@@ -1255,12 +1182,13 @@ g1 = plot_grid(g$plot +
                        legend.position = "top"),
                g$table +
                  guides(colour = "none"), ncol = 1, align = "v", rel_heights = c(2, 1))
-ggsave(plot = g1, filename = paste0(results, "_response/kaplan_meier_mmr_imaging_test.png"),
+ggsave(plot = g1, filename = "./kaplan_meier_mmr_imaging_test.png",
        width = 5, height = 5, bg = "white", units = 'in', dpi = 300)
 
 
 
 ##### AUROC and PRROC #####
+
 
 # First use halving time and later binary halving time
 
@@ -1337,7 +1265,7 @@ g = ggplot(roc_df, aes(x = FPR, y = TPR, color=Model)) +
         panel.border = element_blank(),
         panel.background = element_blank()) +
   scale_x_continuous(expand = c(0.01, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)); g
-ggsave(plot = g, filename = paste0(results, "_response/AUROC_continuous_halving_time.png"), bg = "white", width = 5, height = 5, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./AUROC_continuous_halving_time.png", bg = "white", width = 5, height = 5, units = "in", dpi = 300)
 
 
 # Calculate and plot the PR Curve
@@ -1400,7 +1328,7 @@ g = ggplot(pr_df, aes(x = Recall, y = Precision, color=Model)) +
         panel.background = element_blank()) +
   scale_x_continuous(expand = c(0.01, 0.01)) +
   scale_y_continuous(limits = c(0.4, 1), expand = c(0.01, 0.01)); g
-ggsave(plot = g, filename = paste0(results, "_response/PRAUC_continuous_halving_time.png"), bg = "white", width = 5, height = 5, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./PRAUC_continuous_halving_time.png", bg = "white", width = 5, height = 5, units = "in", dpi = 300)
 
 
 
@@ -1480,7 +1408,7 @@ g = ggplot(roc_df, aes(x = FPR, y = TPR, color=Model)) +
         panel.border = element_blank(),
         panel.background = element_blank()) +
   scale_x_continuous(expand = c(0.01, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)); g
-ggsave(plot = g, filename = paste0(results, "_response/AUROC_binary_halving_time.png"), bg = "white", width = 5, height = 5, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./AUROC_binary_halving_time.png", bg = "white", width = 5, height = 5, units = "in", dpi = 300)
 
 # Calculate and plot the PR Curve
 pr_curve1 <- pr.curve(scores.class0 = df_test3[df_test3$response_at_24 == 1,]$score,
@@ -1542,5 +1470,5 @@ g = ggplot(pr_df, aes(x = Recall, y = Precision, color=Model)) +
         panel.background = element_blank()) +
   scale_x_continuous(expand = c(0.01, 0.01)) +
   scale_y_continuous(limits = c(0.5, 1), expand = c(0.01, 0.01)); g
-ggsave(plot = g, filename = paste0(results, "_response/PRAUC_binary_halving_time.png"), bg = "white", width = 5, height = 5, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./PRAUC_binary_halving_time.png", bg = "white", width = 5, height = 5, units = "in", dpi = 300)
 

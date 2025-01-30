@@ -1,18 +1,14 @@
 # Balloonplot
 
 # Library
-source("~/mounts/research/src/Rfunctions/library.R")
+source("~/library.R")
 library(ggpubr)
 library(rstatix)
 
-# General parameters
-source("~/mounts/research/husdatalake/disease/scripts/CML/R/parameters")
-
-dir.create(paste0(results, "_response/Scatterplots_WBCdiff"))
 
 
 # Data
-df0 = readRDS(paste0(export, "_response/data_for_modelling1.rds")) %>%
+df0 = readRDS("./data_for_modelling1.rds") %>%
   dplyr::filter(!(is.na(MMR_time) | MMR_time == 0)) %>%
   mutate(
     l_mono = ifelse(l_mono==70, NA, l_mono),
@@ -24,8 +20,8 @@ df0 = readRDS(paste0(export, "_response/data_for_modelling1.rds")) %>%
                          ifelse(Sokal_class == "Intermediate", 1,
                                 ifelse(Sokal_class == "High", 2, NA))),
     Hasford_class = ifelse(Hasford_class == "Low", 0,
-                            ifelse(Hasford_class == "Intermediate", 1,
-                                   ifelse(Hasford_class == "High", 2, NA))),
+                           ifelse(Hasford_class == "Intermediate", 1,
+                                  ifelse(Hasford_class == "High", 2, NA))),
     ELTS_class = ifelse(ELTS_class == "Low", 0,
                         ifelse(ELTS_class == "Intermediate", 1,
                                ifelse(ELTS_class == "High", 2, NA))),
@@ -39,7 +35,6 @@ df0 = readRDS(paste0(export, "_response/data_for_modelling1.rds")) %>%
     HUS_or_AUS_pt = ifelse(str_detect(henkilotunnus, '^(02139|AUS)'), 1, 0)) %>%
   mutate(across(c(dasatinib, imatinib, nilotinib), as.integer))
 
-table(df0$response_at_24)
 
 # Rename
 df0 = df0 %>%
@@ -51,7 +46,6 @@ df0 = df0 %>%
     mmr_time = ifelse(is.na(mmr_time), 0, mmr_time),
     mmr_time1=mmr_time,
     mmr = response_at_24
-    # mmr_time=ifelse(!is.na(response_at_24), 1/mmr_time, NA)
   ) %>%
   dplyr::filter(!is.na(response_at_24)) %>%
   dplyr::filter(!(response_at_24==FALSE & mmr_time1<24))
@@ -99,20 +93,18 @@ for (i in unique(names(df)[grep(pattern = "^l_", x=names(df))])) {
                                gsub("Mono", "Monocytes",
                                     gsub("Neut", "Neutrophils", paste0(paste0("PB ", (stringr::str_to_sentence(gsub("l_", "", i)))), " (%)"))))))),
          y="PB WBC (%)") +
-    # ylim(0, 105) +
     theme_bw() +
     theme(axis.text.x = element_text(size=13, colour = "black"),
           axis.text.y = element_text(size=13, colour = "black"),
           axis.title=element_text(size=14, colour = "black"),
           legend.position = "none") +
     scale_fill_brewer(palette = c("Set1"), direction = -1) +
-    # scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
     stat_compare_means(method = "wilcox.test",
                        # label = "p.signif",
                        # label.y = 12,
                        label.x = 1.2,
                        size = 6); g
-  ggsave(plot = g, filename = paste0(results, "_response/Scatterplots_WBCdiff/WBC_", janitor::make_clean_names(i), ".png"),
+  ggsave(plot = g, filename = paste0("./Scatterplots_WBCdiff/WBC_", janitor::make_clean_names(i), ".png"),
          width = 5, height = 5, units = "in", dpi = 300)
   
 }
@@ -148,13 +140,10 @@ for (i in unique(names(df)[grep(pattern = "^l_", x=names(df))])) {
           axis.title=element_text(size=14, colour = "black"),
           legend.position = "none") +
     scale_fill_brewer(palette = c("Set1"), direction = -1) +
-    # scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
     stat_compare_means(method = "wilcox.test",
-                       # label = "p.signif",
-                       # label.y = 12,
                        label.x = 1.2,
                        size = 6); g
-  ggsave(plot = g, filename = paste0(results, "_response/Scatterplots_WBCdiff/WBC_", janitor::make_clean_names(i), "_1.png"),
+  ggsave(plot = g, filename = paste0("./Scatterplots_WBCdiff/WBC_", janitor::make_clean_names(i), "_1.png"),
          width = 5, height = 5, units = "in", dpi = 300)
   
 }
@@ -213,26 +202,21 @@ for (i in unique(names(df)[grep(pattern = "^l_", x=names(df))])) {
   # Plot
   g <- ggplot(data = df1, aes(x = x1, y = y1)) +
     geom_point(size=3, color = "black") +
-    # geom_smooth(size=2, method='lm', formula= y~x) +
     labs(x = x2,
          y = y2) +
-    # ylim(0, 105) +
     theme_bw() +
     coord_equal(ratio = 1) +
     expand_limits(x = 0, y = 0) +
     xlim(min(tick_breaks), max(tick_breaks)) +
     ylim(min(tick_breaks), max(tick_breaks)) +
-    # scale_x_continuous(breaks = tick_breaks) +
-    # scale_y_continuous(breaks = tick_breaks) +
     theme(axis.text.x = element_text(size=13, colour = "black"),
           axis.text.y = element_text(size=13, colour = "black"),
           axis.title=element_text(size=14, colour = "black"),
           legend.position = "none") +
-    # scale_fill_brewer(palette = c("Set1"), direction = -1) +
     stat_cor(method = "spearman",
              label.x = 1.2,
              size = 6); g
-  ggsave(plot = g, filename = paste0(results, "_response/Scatterplots_WBCdiff/", janitor::make_clean_names(x2), "_", janitor::make_clean_names(y2), ".png"),
+  ggsave(plot = g, filename = paste0("./Scatterplots_WBCdiff/", janitor::make_clean_names(x2), "_", janitor::make_clean_names(y2), ".png"),
          width = 5, height = 5, units = "in", dpi = 300)
   
 }
@@ -287,10 +271,10 @@ pvalue_df1 <- tmp1 %>%
     variable = paste0(paste0("PB ", (stringr::str_to_sentence(gsub("l_", "", variable)))), " (%)"),
     variable = gsub("Erblast", "Erythroblasts",
                     gsub("Baso", "Basophils",
-                                    gsub("Eos", "Eosinophils",
-                                         gsub("Lymf", "Lymphocytes",
-                                              gsub("Mono", "Monocytes",
-                                                   gsub("Neut", "Neutrophils", variable)))))),
+                         gsub("Eos", "Eosinophils",
+                              gsub("Lymf", "Lymphocytes",
+                                   gsub("Mono", "Monocytes",
+                                        gsub("Neut", "Neutrophils", variable)))))),
     group1 = "PB WBC (E9/L)\nHigh vs. low")
 
 
@@ -298,27 +282,21 @@ pvalue_df1 <- tmp1 %>%
 p <- ggballoonplot(pvalue_df1, x = "variable", y = "group1",
                    fill = "FC",
                    size = "neg_log10_p_adj",
-                   # size.range = c(1, 10),
                    ggtheme = theme_bw()) +
   scale_size(breaks = c(0, 1, 2, 3), range = c(1, 10), limits = c(1, max(pvalue_df1$neg_log10_p_adj))) +
-  # scale_fill_viridis_c(option = "C") +
-  # gradient_fill(c("blue", "white", "red")) +
-  # ylab("Clinical variables") +
-  # xlab("MMR biomarkers") +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red",
                        midpoint = 1,
-                       # breaks = c(1, 2, 3),
                        limits = c(min(pvalue_df1$FC), max(pvalue_df1$FC)), na.value = "gray") +
   guides(size = guide_legend(title="LOG10 AdjP", nrow = 1, title.vjust = 0.5),
          fill = guide_colorbar(title="LOG10 FC", title.vjust = 0.75)) +
   font("xy.text", size = 10, color = "black", face="plain") +
   theme_bw() +
-  theme(#axis.title.y = element_text(size=12, colour="black", angle = 90),
+  theme(
     axis.text.x = element_text(colour="black", angle = 45, hjust = 1, vjust = 1),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
     axis.text.y = element_text(colour="black", hjust = 0.5),
     legend.position = "bottom", legend.margin=margin()); p
-ggsave(plot = p, filename = paste0(results, "_response/Balloonplot_WBC_diff.png"),
+ggsave(plot = p, filename = "./Balloonplot_WBC_diff.png",
        width = 5.5, height = 2.5, dpi = 300, units = "in", bg = "white")
 

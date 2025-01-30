@@ -1,27 +1,17 @@
 # Survival plots
 
 # Library
-source("~/mounts/research/src/Rfunctions/library.R")
+source("~/library.R")
 library(ggpubr)
 library(survminer)
 library(cowplot)
 
-dir.create(paste0(results, "_response/Survival"))
-
-# # Read data
-# df = read_xlsx(paste0(export, "_response/Helsinki Full TFR cohort data _de-identified.xlsx"), sheet = "CML Full TFR cohort data")
-# df1 = read_xlsx(paste0(export, "_response/Helsinki Full TFR cohort data _de-identified.xlsx"), sheet = "TFR cohort BM data")
-# df = df %>%
-#   dplyr::left_join(df1) %>%
-#   janitor::clean_names() %>%
-#   dplyr::filter(!id_number == "12")
-
 
 # Read data
-df1 = read_xlsx(paste0(results, "_response/univariate_cox_results_top_features_clinical_balloonplot.xlsx"))
-df = read_xlsx(paste0(export, "_response/full_data.xlsx")) %>%
+df1 = read_xlsx("./univariate_cox_results_top_features_clinical_balloonplot.xlsx")
+df = read_xlsx("./full_data.xlsx") %>%
   dplyr::select(mmr, mmr_time, names(df1))
-top_features = read_xlsx(paste0(results, "_response/univariate_cox_results_top_features.xlsx"))
+top_features = read_xlsx("./univariate_cox_results_top_features.xlsx")
 
 
 # Categorize these
@@ -72,27 +62,17 @@ colnames(df) = gsub("_", " ",
 colnames(df) = gsub("mmr time", "mmr_time", colnames(df))
 
 
-# # Define variable sets
-# top_features1 = df %>%
-#   mutate_at(vars(matches("Lipid|WBC|Mono|Mega|Proe")),
-#             .funs = function(x) x = ntile(x, 3)) %>%
-#   mutate_at(vars(matches("Age|Lipid|WBC|Mono|Mega|Proe")),
-#             .funs = function(x) x = ifelse(is.na(x), NA, ifelse(x==1, "Low", ifelse(x==2, "Int", "High"))))
+# Define variable sets
 top_features1 = df
 colnames(top_features1) = gsub("cell ", "cell\n", colnames(top_features1))
 colnames(top_features1) = gsub("nuclei ", "nuclei\n", colnames(top_features1))
 colnames(top_features1) = gsub("periphery ", "periphery\n", colnames(top_features1))
 colnames(top_features1) = gsub(" \\(yes\\/no\\)", "", colnames(top_features1))
 
-# # Add time and event
-# top_features1 = top_features1 %>%
-#   cbind(data.frame(time = 1:nrow(top_features1), event = rep(x = c(0,1), nrow(top_features1)/2)))
-
 
 # Plot
 for (feature1 in names(top_features1)[3:(length(names(top_features1))-2)]) {
   
-  # feature1 = names(top_features1)[3:(length(names(top_features1))-2)][2]
   # Survival plots
   top_features1$tmp = top_features1[[feature1]]
   top_features1$tmp = factor(top_features1$tmp, levels = unique(top_features1[order(top_features1$tmp, decreasing = TRUE),]$tmp))
@@ -123,7 +103,6 @@ for (feature1 in names(top_features1)[3:(length(names(top_features1))-2)]) {
                   risk.table.height = 0.25,
                   ylab = "MMR (%)",
                   xlab = "Time (years)",
-                  # legend = c(0.8, 0.85),
                   surv.scale = "percent",
                   ylim = c(0,1),
                   xlim = c(0,60),
@@ -137,7 +116,7 @@ for (feature1 in names(top_features1)[3:(length(names(top_features1))-2)]) {
   g = plot_grid(g$plot + guides(colour = guide_legend(nrow = 1)), g$table +  guides(colour = "none"), ncol = 1, align = "v", rel_heights = c(2, 1))
   
   # Save
-  ggsave(plot = g, filename = paste0(results, "_response/Survival/KM_", janitor::make_clean_names(feature1), ".png"),
+  ggsave(plot = g, filename = paste0("./Survival/KM_", janitor::make_clean_names(feature1), ".png"),
          width = 5, height = 5, units = "in", dpi = 300, bg = "white") 
   
 }

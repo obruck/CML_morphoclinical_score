@@ -1,18 +1,16 @@
 rm(list = ls())
 
 # Load necessary libraries
-source("~/mounts/research/src/Rfunctions/library.R")
+source("~/library.R")
 library(uwot)
 
-# General parameters
-source("~/mounts/research/husdatalake/disease/scripts/CML/R/parameters")
 
 
 ###### Process data ########
 
 
 # Data
-df0 = readRDS(paste0(export, "_response/data_for_modelling_all_cml1.rds")) %>%
+df0 = readRDS("./data_for_modelling_all_cml1.rds") %>%
   mutate(
     imatinib = ifelse(first_TKI=="imatinib", 1, 0),
     nilotinib = ifelse(first_TKI=="nilotinib", 1, 0),
@@ -32,8 +30,6 @@ df0 = readRDS(paste0(export, "_response/data_for_modelling_all_cml1.rds")) %>%
     MMR_time = as.numeric(MMR_time)/30.44,
     MR4.0_time = as.numeric(MR4.0_time)/30.44,
     MR4.5_time = as.numeric(MR4.5_time)/30.44,
-    # response_at_48 = ifelse(!is.na(MMR) & MMR_time<24 & MMR == 0, NA,
-    #                         ifelse(MMR_time >= 24, FALSE, TRUE)),
     HUS_or_AUS_pt = ifelse(str_detect(henkilotunnus, '^(02139|AUS)'), 1, 0)) %>%
   mutate(across(c(dasatinib, imatinib, nilotinib), as.integer))
 
@@ -41,22 +37,11 @@ df0 = readRDS(paste0(export, "_response/data_for_modelling_all_cml1.rds")) %>%
 df0 = df0 %>%
   janitor::clean_names()
 
-# # Define endpoints
-# df0 = df0 %>%
-#   dplyr::mutate(
-#     mmr_time = ifelse(is.na(mmr_time), 0, mmr_time),
-#     mmr_time1=mmr_time,
-#     mmr = response_at_48
-#   ) %>%
-#   dplyr::filter(!is.na(response_at_48)) %>%
-#   dplyr::filter(!(response_at_48==FALSE & mmr_time1<24))
-
 
 ## Replace NaN and Inf with NA
 df0[df0 == "NaN"] <- NA
 df0[df0 == "Inf"] <- NA
 df0[df0 == "-Inf"] <- NA
-# df0$mmr_time = ifelse(is.na(df0$mmr_time), min(df0$mmr_time, na.rm = TRUE), df0$mmr_time)
 
 df = df0
 
@@ -71,8 +56,7 @@ set.seed(seed1)
 # Select features for UMAP
 umap_data = df %>%
   dplyr::select(which(names(df)=="rbc_sample_proportion"):which(names(df)=="macrophages_nuclei_compactness_percentile_75"))
-umap_metadata = df #%>%
-  # dplyr::select(!which(names(df)=="rbc_sample_proportion"):which(names(df)=="macrophages_nuclei_compactness_percentile_75"))
+umap_metadata = df
 ## Remove rows where all image values are NA
 remove_rows = rowSums(is.na(umap_data)) != ncol(umap_data)
 umap_data = umap_data[remove_rows,]
@@ -113,17 +97,13 @@ umap1 = umap1 %>%
 # Plot
 ## BM Blast %
 umap1$b_leuk1 = ifelse(abs(umap1$bm_blast) > 20, 20, umap1$bm_blast)
-# umap1$b_leuk1 = ifelse(umap1$eosinophils_percentage > quantile(umap1$blasts_percentage, probs = 0.975, na.rm = TRUE),
-#                        quantile(umap1$blasts_percentage, probs = 0.975, na.rm = TRUE), umap1$eosinophils_percentage)
 umap1$order = ifelse(is.na(umap1$b_leuk1), 0, umap1$b_leuk1)
 g = ggplot(data = umap1 %>%
              dplyr::arrange(order)) +
-  geom_point(aes(x = UMAP_1, y = UMAP_2, color = b_leuk1), size = 2, alpha=1) +#, size = 1) +
-  # scale_size_continuous(range = c(0.3, 5), name = "BM Blast (%)") + 
+  geom_point(aes(x = UMAP_1, y = UMAP_2, color = b_leuk1), size = 2, alpha=1) +
   scale_color_distiller(palette = "RdBu", name = "BM Blast (%)") + 
   theme_bw() +
-  theme(#axis.line = element_line(colour = "black"),
-    #axis.text = element_text(colour = "black"),
+  theme(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
@@ -135,7 +115,7 @@ g = ggplot(data = umap1 %>%
     axis.title.x=element_blank(),
     axis.title.y=element_blank(),
     plot.background=element_blank()); g
-ggsave(plot = g, filename = paste0(results, "_response/UMAP_bmblast.png"), bg = "white", width = 6, height = 6, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./UMAP_bmblast.png", bg = "white", width = 6, height = 6, units = "in", dpi = 300)
 
 ## WBC
 umap1$b_leuk1 = ifelse(abs(umap1$b_leuk) > 100, 100, umap1$b_leuk) 
@@ -143,12 +123,9 @@ umap1$order = ifelse(is.na(umap1$b_leuk1), 0, umap1$b_leuk1)
 g = ggplot(data = umap1 %>%
              dplyr::arrange(order)) +
   geom_point(aes(x = UMAP_1, y = UMAP_2, color = b_leuk1), size = 2, alpha=1) +#, size = 1) +
-  # scale_size_continuous(range = c(0.3, 5), name = "BM Blast (%)") + 
   scale_color_distiller(palette = "RdBu", name = "PB WBC (E9/L)") + 
   theme_bw() +
-  theme(#axis.line = element_line(colour = "black"),
-        #axis.text = element_text(colour = "black"),
-        panel.grid.major = element_blank(),
+  theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         axis.line=element_blank(),
@@ -159,7 +136,7 @@ g = ggplot(data = umap1 %>%
         legend.position = "none",
         axis.title.y=element_blank(),
         plot.background=element_blank()); g
-ggsave(plot = g, filename = paste0(results, "_response/UMAP_wbc.png"), bg = "white", width = 6, height = 6, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./UMAP_wbc.png", bg = "white", width = 6, height = 6, units = "in", dpi = 300)
 
 ## WBC
 umap1 = umap1 %>%
@@ -176,12 +153,9 @@ umap1$order = ifelse(is.na(umap1$b_leuk1), 0, umap1$b_leuk1)
 g = ggplot(data = umap1 %>%
              dplyr::arrange(order)) +
   geom_point(aes(x = UMAP_1, y = UMAP_2, color = b_leuk1), size = 2, alpha=1) +#, size = 1) +
-  # scale_size_continuous(range = c(0.3, 5), name = "BM Blast (%)") + 
-  # scale_color_distiller(palette = "RdBu", name = "Time from diagnosis (days)") + 
   scale_color_brewer(palette = "Set1", name = "Time from\ndiagnosis\n(days)") + 
   theme_bw() +
-  theme(#axis.line = element_line(colour = "black"),
-    #axis.text = element_text(colour = "black"),
+  theme(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
@@ -193,5 +167,5 @@ g = ggplot(data = umap1 %>%
     axis.title.y=element_blank(),
     legend.position = "none",
     plot.background=element_blank()); g
-ggsave(plot = g, filename = paste0(results, "_response/UMAP_baseline_followup.png"), bg = "white", width = 6, height = 6, units = "in", dpi = 300)
+ggsave(plot = g, filename = "./UMAP_baseline_followup.png", bg = "white", width = 6, height = 6, units = "in", dpi = 300)
 

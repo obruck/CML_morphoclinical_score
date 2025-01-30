@@ -1,2 +1,11 @@
-# CML_morphoclinical_score
- 
+# Computational Cytomorphology Analysis Identifies an Erythroid Shift to Increase TKI Sensitivity In CML
+
+
+## BACKGROUND
+These codes will help you reproduce the analyses, plots and statistical analyses of the publication "Computational Cytomorphology Analysis Identifies an Erythroid Shift to Increase TKI Sensitivity In CML" by Luukkainen Katariina et al.  
+
+## Abstract
+While prognostic risk tools, in particular the ELTS score, have been designed to predict prognosis of patients with chronic myeloid leukemia (CML), these are also employed to select the optimal tyrosine kinase inhibitor (TKI). Despite advances in imaging and computational methods, these have not been used to study the bone marrow (BM) milieu of CML patients. This study analyzed digitized pre-treatment MGG-stained BM aspirate slides from seven clinical sites to identify cytomorphological markers predictive of major molecular response (MMR). Using deep learning-based image analysis, we evaluated over 600 clinical and computationally derived cytomorphological variables from 248 samples. We identified enrichment of erythroid precursors and monocyte nuclear size as novel cytomorphological features and low peripheral blood leukocyte load to associate with improved TKI response and validated these in two independent datasets both visually and with computational methods. We created a multi-parameter Morphoclinical model incorporating these and other clinical features, and demonstrated its performance in both an external dataset (AUROC 0.76) and against the ELTS score (AUROC 0.53) and BCR-ABL1 halving time (AUROC 0.61). Finally, second-generation TKIs mitigate poor morphoclinical risk, achieving response rates comparable to favorable-risk patients treated with imatinib. These findings highlight the overlooked potential of BM cytomorphology in refining risk stratification and provide a tool to optimize first-line TKI selection over current clinical practice.
+
+## Requirements
+- R 4.4.2 and R libraries are described at `./sessioninfo.txt` (for data preparation, statistical analyses and some plots)
