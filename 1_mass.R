@@ -11,6 +11,7 @@ library(PRROC)
 library(cutpointr)
 library(MASS)
 library(cowplot)
+library(patchwork)
 
 
 ###### Process data ########
@@ -1010,6 +1011,210 @@ g1 = plot_grid(g$plot +
 ggsave(plot = g1, filename = "./kaplan_meier_mmr_imaging_by_tki_val_test.png",
        width = 5, height = 5, bg = "white", units = 'in', dpi = 300)
 
+
+
+# Score by ELTS group
+
+# print(unique(df_test1$elts_class))
+# Fit
+df6_ELTS_low = rbind(df_val1, df_test1) %>%
+  dplyr::filter(elts_class == 0) %>%
+  dplyr::mutate(score_cat = ifelse(score > median(score, na.rm=TRUE), "ELTS low-high score", "ELTS low-low score"))
+df6_ELTS_intermediate = rbind(df_val1, df_test1) %>%
+  dplyr::filter(elts_class == 1) %>%
+  dplyr::mutate(score_cat = ifelse(score > median(score, na.rm=TRUE), "ELTS intermed-high score", "ELTS intermed-low score"))
+df6_ELTS_high = rbind(df_val1, df_test1) %>%
+  dplyr::filter(elts_class == 2) %>%
+  dplyr::mutate(score_cat = ifelse(score > median(score, na.rm=TRUE), "ELTS high-high score", "ELTS high-low score"))
+df6 = rbind(df6_ELTS_low, df6_ELTS_intermediate, df6_ELTS_high)
+df6$score_cat = factor(df6$score_cat)
+fit <- survfit(Surv(mmr_time, mmr) ~ score_cat, data = df6)
+fit_low <- survfit(Surv(mmr_time, mmr) ~ score_cat, data = df6_ELTS_low)
+fit_intermediate <- survfit(Surv(mmr_time, mmr) ~ score_cat, data = df6_ELTS_intermed)
+fit_high <- survfit(Surv(mmr_time, mmr) ~ score_cat, data = df6_ELTS_high)
+
+my_colors <- brewer.pal(8, "Set1")   # 9 colors in Set1
+my_colors[6] <- "#E69F00" 
+
+## Plots
+q_low = ggsurvplot(fit_low,
+                   fun = "event",
+                   title = "ELTS Low-risk", 
+                   data = df6_ELTS_low,
+                   palette = my_colors,
+                   size = 2,   #line thickness
+                   ggtheme = theme_minimal(), #theme
+                   font.main = c(11, "black"), #title font
+                   font.x = c(11, "black"), #x-axis font
+                   font.y = c(11, "black"), #y-axis font
+                   font.tickslab = c(11, "black"), #axis numbering font
+                   conf.int = FALSE, #confidence interval
+                   pval = FALSE, #p-value
+                   risk.table.pos = "out",
+                   tables.y.text = FALSE,
+                   tables.theme = theme_cleantable(),
+                   break.x.by = 12,
+                   risk.table.fontsize = 4,
+                   risk.table = c("absolute"), #risk table ('absolute', 'percentage', 'abs_pct')
+                   risk.table.col = "strata", #risk table color
+                   risk.table.height = 0.25,
+                   ylab = "MMR (%)",
+                   xlab = "Time (month)",
+                   surv.scale = "percent",
+                   ylim = c(0,1),
+                   xlim = c(0, 48),
+                   censor = TRUE,
+                   censor.shape = 108,
+                   censor.size = 4,
+                   font.legend = c(11, "black"),    #font voi olla esim. "bold" tai "plain"
+                   legend.title = "Morphoclinical score",
+                   legend.labs = c("High", "Low"))
+
+
+q_intermediate = ggsurvplot(fit_intermediate,
+                            fun = "event",
+                            title = "ELTS Intermediate-risk",
+                            data = df6_ELTS_intermediate,
+                            palette = my_colors,
+                            size = 2,   #line thickness
+                            ggtheme = theme_minimal(), #theme
+                            font.main = c(11, "black"), #title font
+                            font.x = c(11, "black"), #x-axis font
+                            font.y = c(11, "black"), #y-axis font
+                            font.tickslab = c(11, "black"), #axis numbering font
+                            conf.int = FALSE, #confidence interval
+                            pval = FALSE, #p-value
+                            risk.table.pos = "out",
+                            tables.y.text = FALSE,
+                            tables.theme = theme_cleantable(),
+                            break.x.by = 12,
+                            risk.table.fontsize  = 4,
+                            risk.table = c("absolute"), #risk table ('absolute', 'percentage', 'abs_pct')
+                            risk.table.col = "strata", #risk table color
+                            risk.table.height = 0.25,
+                            ylab = "MMR (%)",
+                            xlab = "Time (month)",
+                            surv.scale = "percent",
+                            ylim = c(0,1),
+                            xlim = c(0, 48),
+                            censor = TRUE,
+                            censor.shape = 108,
+                            censor.size = 4,
+                            font.legend = c(11, "black"),    #font voi olla esim. "bold" tai "plain"
+                            legend.title = "Morphoclinical score",
+                            legend.labs = c("High", "Low"))
+q_high = ggsurvplot(fit_high,
+                    fun = "event",
+                    title = "ELTS High-risk",
+                    data = df6_ELTS_high,
+                    palette = my_colors,
+                    size = 2,   #line thickness
+                    ggtheme = theme_minimal(), #theme
+                    font.main = c(11, "black"), #title font
+                    font.x = c(11, "black"), #x-axis font
+                    font.y = c(11, "black"), #y-axis font
+                    font.tickslab = c(11, "black"), #axis numbering font
+                    conf.int = FALSE, #confidence interval
+                    pval = FALSE, #p-value
+                    risk.table.pos = "out",
+                    tables.y.text = FALSE,
+                    tables.theme = theme_cleantable(),
+                    break.x.by = 12,
+                    risk.table.fontsize  = 4,
+                    risk.table = c("absolute"), #risk table ('absolute', 'percentage', 'abs_pct')
+                    risk.table.col = "strata", #risk table color
+                    risk.table.height = 0.25,
+                    ylab = "MMR (%)",
+                    xlab = "Time (month)",
+                    surv.scale = "percent",
+                    ylim = c(0,1),
+                    xlim = c(0, 48),
+                    censor = TRUE,
+                    censor.shape = 108,
+                    censor.size = 4,
+                    font.legend = c(11, "black"),    #font voi olla esim. "bold" tai "plain"
+                    legend.title = "Morphoclinical score",
+                    legend.labs = c("High", "Low"))
+
+
+
+final_plot = (q_low$plot/q_low$table + guides(colour = "none"))|(q_intermediate$plot/q_intermediate$table + guides(colour = "none"))|(q_high$plot/q_high$table + guides(colour = "none"))
+final_plot
+ggsave(plot = final_plot, filename = paste0(results, "_response/KM_plots_ELTS_risk_groups.png"),
+       width = 11, height = 5, bg = "white", units = 'in', dpi = 300)
+
+
+## Edits ELTS risk groups
+# Combine validation and test sets
+df6 <- rbind(df_val1, df_test1)
+
+# Create ELTS group factor and model risk groups within each ELTS group
+df6 <- df6 %>%
+  mutate(ELTS_group = factor(elts_class, labels = c("ELTS Low", "ELTS Intermediate", "ELTS High"))) %>%
+  group_by(ELTS_group) %>%
+  mutate(model_risk = ifelse(score > median(score, na.rm=TRUE), "High model risk", "Low model risk")) %>%
+  ungroup()
+
+# Fit KM curves stratified by model risk and faceted by ELTS
+fit <- survfit(Surv(mmr_time, mmr) ~ model_risk, data = df6)
+
+# Plot with facets by ELTS
+g <- ggsurvplot_facet(
+  fit,
+  data = df6,
+  facet.by = "ELTS_group",
+  palette = c("firebrick", "steelblue"),
+  fun = "event",
+  size = 2.5,
+  ggtheme = theme_minimal(),
+  conf.int = FALSE,
+  pval = TRUE,
+  pval.size = 5,
+  risk.table = TRUE,
+  risk.table.height = 0.25,
+  risk.table.col = "strata",
+  tables.y.text = FALSE,
+  break.x.by = 12,
+  ylim = c(0,1),
+  xlim = c(0, 60),
+  ylab = "MMR (%)",
+  xlab = "Time (months)",
+  surv.scale = "percent",
+  censor = TRUE,
+  censor.shape = 108,
+  censor.size = 4,
+  font.legend = c(12, "bold", "black"),
+  legend.title = "Model-predicted risk",
+  legend.labs = c("Low", "High")
+)
+
+# Clean theme
+g$plot <- g$plot +
+  theme_bw() +
+  theme(
+    axis.line = element_line(colour = "black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    axis.text.x = element_text(size=12, colour="black"),
+    axis.text.y = element_text(size=12, colour="black"),
+    axis.title=element_text(size=14, colour="black"),
+    legend.text = element_text(size=12, colour="black"),
+    legend.title = element_text(size=12, face="bold", colour="black"),
+    legend.position = "top"
+  )
+
+# Combine plot + risk table
+g1 <- plot_grid(
+  g$plot + guides(colour = guide_legend(nrow=1)), 
+  g$table + guides(colour = "none"),
+  ncol = 1, align = "v", rel_heights = c(2,1)
+)
+g1
+# Save
+ggsave(plot = g1, filename = "./kaplan_meier_mmr_by_ELTS_2.png",
+       width = 7, height = 5, bg = "white", units = 'in', dpi = 300)
 
 
 # SCORE TRAIN
